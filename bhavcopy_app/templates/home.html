@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8">
+    <title>HOME | BSE Data Analysis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap/dist/css/bootstrap.min.css"/>
+    <link type="text/css" rel="stylesheet" href="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+    <script src="https://unpkg.com/babel-polyfill@latest/dist/polyfill.min.js"></script>
+    <script src="https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
+    <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      window.Vue = Vue;
+    </script>
+    <style>
+        body{
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        span.sr-only{
+            display: none;
+        }
+        .main{
+            background-color: #f6f5f5;
+        }
+    </style>
+</head>
+<body>
+<div id="vm" >
+    <header class="header bg-danger p-2 text-white">
+        <h1 class="text-center">BSE DATA ANALYSIS</h1>
+    </header>
+    <div class="main pt-5">
+    <div class="container text-center">
+            <form method="get">
+                <div class="mx-auto text-center d-flex col-md-4">
+                    <input class="form-control" name="bhavdata" placeholder="Search" style="width:400px">&nbsp;&nbsp;
+                    <button class="btn btn-primary col-md-4">
+                        <b-icon icon="search" style="color: #fff;"></b-icon>
+                        Search
+                    </button>
+
+                </div>
+
+            </form>
+    </div>&nbsp;&nbsp;
+    <div class="pb-5">
+        <template >
+            <b-container style="border: 1px solid #ddd;">
+                <b-row>
+                    <b-col md="4" class="my-1">
+                        <b-form-group horizontal label="Filter" class="mb-0">
+                            <b-input-group>
+                                <b-form-input v-model="filter" placeholder="Type to Search"/>
+                                <b-input-group-append>
+                                    <b-btn :disabled="!filter" @click="filter = ''">Clear</b-btn>
+                                </b-input-group-append>
+                            </b-input-group>
+                        </b-form-group>
+                    </b-col>
+
+
+                    <b-col md="4" class="my-1 d-flex justify-content-center">
+                        <b-form-group horizontal label="Sort" class="mb-0">
+                            <b-input-group>
+                                <b-form-select v-model="sortBy" :options="sortOptions">
+                                    <option slot="first" :value="null">None</option>
+                                </b-form-select>
+                                <b-form-select :disabled="!sortBy" v-model="sortDesc" slot="append">
+                                    <option :value="false">Asc</option>
+                                    <option :value="true">Desc</option>
+                                </b-form-select>
+                            </b-input-group>
+                        </b-form-group>
+                    </b-col>
+
+                    <b-col md="4" class="my-1 d-flex justify-content-center">
+                        <b-form-group horizontal label="Per page" class="mb-0">
+                            <b-form-select :options="pageOptions" v-model="perPage"/>
+                        </b-form-group>
+                    </b-col>
+                </b-row>
+
+
+                <b-table id="bse-analysis-data" show-empty
+                        stacked="md"
+                        :items="items"
+                        :fields="fields"
+                        :current-page="currentPage"
+                        :per-page="perPage"
+                        :filter="filter"
+                        :sort-by.sync="sortBy"
+                        :sort-desc.sync="sortDesc"
+                        :sort-direction="sortDirection"
+                        @filtered="onFiltered"
+                >
+
+                    <template slot="code" slot-scope="row">{{row.value}}</template>
+                    <template slot="name" slot-scope="row">{{row.value}}</template>                
+                    <template slot="open" slot-scope="row">{{row.value}}</template>
+                    <template slot="high" slot-scope="row">{{row.value}}</template>
+                    <template slot="low" slot-scope="row">{{row.value}}</template>
+                    <template slot="close" slot-scope="row">{{row.value}}</template>
+
+
+                </b-table>
+
+                <b-row>
+                    <b-col md="6" class="my-1">
+                        <b-pagination :total-rows="totalRows" pills :per-page="perPage" v-model="currentPage" class="my-0" align="center"> </b-pagination>
+                    </b-col>
+                    <b-col>
+                        <button class="btn btn-primary float-right my-1" md="6" style="float: right"
+                                onclick="download_table_as_csv('bse-analysis-data');"> 
+                                <b-icon icon="download" style="color: #fff;"></b-icon>
+                                Download Report
+                        </button>
+                    </b-col>
+                </b-row>
+                <b-modal id="modalInfo" @hide="resetModal" :title="modalInfo.title" ok-only>
+                    <pre>{{ modalInfo.content }}</pre>
+                </b-modal>
+
+            </b-container>
+        </template>
+    </div>
+</div> <!-- end of main-->
+<footer style="background-color: #3f4441;">
+    <div class="container p-2">
+        <span class="text-white"> Developed by Suraj Mundhe  </span> 
+    </div>
+</footer>
+</div>
+<script type="text/javascript">
+
+const items = [
+    {% if bhavdata %}
+        {% for r in bhavdata %}
+        { code: {{r.code}}, name: "{{r.name}}" , open :{{r.open}} ,high :{{r.high}} ,low :{{r.low}}  ,close :{{r.close}}   },
+        {% endfor %}
+    {% else %}
+        <p class="text-center"> No Data Found.. Please Check the name</p>
+    {% endif %}
+];
+  var app=  new Vue({
+  el: '#vm',
+  data: {
+    items: items,
+    fields: [
+      { key: 'code', label: 'BHAV CODE', sortable: true, 'class': 'text-center' },
+      { key: 'name', label: 'BHAV NAME', sortable: true, sortDirection: 'asc' },
+	  { key: 'open', label: 'OPEN', sortable: true, 'class': 'text-center' },
+	  { key: 'high', label: 'HIGH', sortable: true, 'class': 'text-center' },
+      { key: 'low', label: 'LOW', sortable: true, 'class': 'text-center' },
+      { key: 'close', label: 'CLOSE' , sortable: true, 'class': 'text-center' }
+    ],
+    currentPage: 1,
+    perPage: 12,
+    totalRows: items.length,
+    pageOptions: [ 12,24,36,48,60 ],
+    sortBy: null,
+    sortDesc: false,
+    sortDirection: 'asc',
+    filter: null,
+    modalInfo: { title: '', content: '' }
+  },
+  mounted() {
+    console.log('app created...');
+  },
+  computed: {
+  sortOptions () {
+    return this.fields
+      .filter(f => f.sortable)
+      .map(f => { return { text: f.label, value: f.key } })
+    }
+  },
+  methods: {
+    info (item, index, button) {
+      this.modalInfo.title = `Row index: ${index}`
+      this.modalInfo.content = JSON.stringify(item, null, 2)
+      this.$root.$emit('bv::show::modal', 'modalInfo', button)
+    },
+    resetModal () {
+      this.modalInfo.title = ''
+      this.modalInfo.content = ''
+    },
+    onFiltered (filteredItems) {
+      this.totalRows = filteredItems.length
+      this.currentPage = 1
+    }
+  },
+});
+
+function download_table_as_csv(table_id, separator = ',') {
+    var rows = document.querySelectorAll('table#' + table_id + ' tr');
+    var csv = [];
+    for (var i = 0; i < rows.length; i++) {
+        var row = [], cols = rows[i].querySelectorAll('td, th');
+        for (var j = 0; j < cols.length; j++) {
+            var data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
+            data = data.replace(/"/g, '""');
+            row.push('"' + data + '"');
+        }
+        csv.push(row.join(separator));
+    }
+    var csv_string = csv.join('\n');
+    var filename = 'export_' + table_id + '_' + new Date().toLocaleDateString() + '.csv';
+    var link = document.createElement('a');
+    link.style.display = 'none';
+    link.setAttribute('target', '_blank');
+    link.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv_string));
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+
+
+</script>
+
+
+</body>
+</html>
